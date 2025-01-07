@@ -54,7 +54,7 @@ const average = (arr) =>
  const KEY = 'cebb18f9'; 
 
 export default function App() {
-	const [query, setQuery] = useState('inception');
+	const [query, setQuery] = useState([]);
 	const [movies, setMovies] = useState([]);
 	const [watched, setWatched] = useState([]);
 	const [isLoading, setIsLoading] = useState(false);
@@ -97,13 +97,20 @@ export default function App() {
 */
 
 
+
+    
+
+      
+
     useEffect( function() {
+		const controller = new AbortController();
+
        
 		async function fetchMovies () {
 			try{
 			setIsLoading(true);
 			setError("");
-		const res = await fetch(`https://www.omdbapi.com/?apikey=${KEY}&s=${query}`);
+		const res = await fetch(`https://www.omdbapi.com/?apikey=${KEY}&s=${query}`, {signal: controller.signal});
 		if(!res.ok) throw new Error("Somwthing went wrong with fetching movies")
        
 
@@ -112,12 +119,15 @@ export default function App() {
          
 		setMovies(data.Search)
 		console.log(data.Search);
+		setError('');
 		
 		
 	} catch (err) {
-			
+			console.error(err.message);
+
+			if(err.name !== "AbortError"){
 			setError(err.message);
-			
+			} 
 		}  finally {
 			setIsLoading(false);
  
@@ -128,9 +138,17 @@ export default function App() {
        if(query.length < 3){
 		setMovies([]);
 		setError('');
-		return;
+
+		// Cleanup function for UseEffect
+		return function() {
+			controller.abort();
+		};
+
 	   }
-	    fetchMovies();
+	   handleCloseMovie();
+	   fetchMovies();
+
+		
 	}, [query]);
 
 
@@ -327,6 +345,27 @@ const isWatched = watched.map((movie) => movie.imdbID).includes(selectedId);
 	  onCloseMovie();
 	};
 
+   
+	useEffect(function() {
+		function callback (e) {
+			if(e.code === 'Escape') { 
+				onCloseMovie()
+				console.log('CLOSING');
+			}
+		  }
+
+		document.addEventListener('keydown', callback);
+
+		return function (){
+			console.log('Cleaning up escape key listener'); // Debug log
+			document.removeEventListener('keydown', callback);
+		};
+	
+  
+  
+	  }, [onCloseMovie]);
+
+
 
     useEffect(() => {
         async function getMovieDetails() {
@@ -346,6 +385,19 @@ const isWatched = watched.map((movie) => movie.imdbID).includes(selectedId);
 
         getMovieDetails();
     }, [selectedId]);
+
+      useEffect (function(){
+		if(!title) return;
+		document.title = `Movie | ${title}`;
+        return function()  {
+            document.title = 'usePopcorn';
+		}
+
+
+	  }, [title])
+
+
+
 
     return (
         <div className="details">

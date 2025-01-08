@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import StarRating from './StarRating';
 import { useMovies } from './useMovies';
+import { useLocalStorageState } from './useLocalStorageState';
+import { useKey } from './useKey';
 
 const tempMovieData = [
 	{
@@ -58,12 +60,17 @@ export default function App() {
 	 const [query, setQuery] = useState([]);
 	//Custom Hook
      const {movies, isLoading, error} = useMovies(query);
+
      const [selectedId, setSelectedId] = useState(null);
 	//const [watched, setWatched] = useState([]);
-	  const [watched, setWatched] = useState(function() {
-	  const storedValue = localStorage.getItem('watched')
-		return JSON.parse(storedValue);
-	});
+
+    const [watched, setWatched] = useLocalStorageState([], 'watched');
+
+
+	//   const [watched, setWatched] = useState(function() {
+	//   const storedValue = localStorage.getItem('watched')
+	// 	return JSON.parse(storedValue);
+	// });
 
    function handleSelectMovie(id){
 	setSelectedId(selectedId => (id === selectedId ? null : id));
@@ -109,14 +116,7 @@ export default function App() {
 
     
 
-   useEffect(function() {
-
-	localStorage.setItem('watched', JSON.stringify(watched));
-
-     
-   }, [watched]);
-
-         
+  
 
 
 
@@ -201,23 +201,18 @@ function Search({query, setQuery}) {
 	
 	const inputEl = useRef(null)
 
-
-	useEffect(function() {
-
-		function callback(e) {
-			if(document.activeElement === inputEl.current) 
-				return;
-			if(e.code === 'Enter'){
-			inputEl.current.focus();
+	useKey('Enter', function() {
+		if (document.activeElement === inputEl.current) 
+			return;
+		inputEl.current.focus();
 			setQuery('');
+	
+	});
+	
 
-		}
-	}
-		document.addEventListener('keydown', callback)
-		return () => document.addEventListener('keydown', callback);
-		
 
-	}, [setQuery])
+
+
 
 	// useEffect(function() {
 	// 	const el = document.querySelector('.search')
@@ -374,25 +369,8 @@ const isWatched = watched.map((movie) => movie.imdbID).includes(selectedId);
 	};
 
    
-	useEffect(function() {
-		function callback (e) {
-			if(e.code === 'Escape') { 
-				onCloseMovie()
-				console.log('CLOSING');
-			}
-		  }
 
-		document.addEventListener('keydown', callback);
-
-		return function (){
-			console.log('Cleaning up escape key listener'); // Debug log
-			document.removeEventListener('keydown', callback);
-		};
-	
-  
-  
-	  }, [onCloseMovie]);
-
+     useKey('Escape', onCloseMovie);
 
 
     useEffect(() => {
